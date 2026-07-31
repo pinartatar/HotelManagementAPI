@@ -50,6 +50,7 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<TokenService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 // JWT doğrulama
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -72,6 +73,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 
 var app = builder.Build();
+app.UseMiddleware<HotelManagement.Middleware.ExceptionHandlingMiddleware>();
 app.UseSerilogRequestLogging();
 
 

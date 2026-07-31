@@ -11,78 +11,25 @@ namespace HotelManagement.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-
-public class AuthController: ControllerBase
+public class AuthController : ControllerBase
 {
-    private readonly AppDbContext _context;
-    private readonly TokenService _tokenService;
-    
-    public AuthController(AppDbContext context, TokenService tokenService)
+    private readonly IAuthService _authService;
+
+    public AuthController(IAuthService authService)
     {
-        _context = context;
-        _tokenService = tokenService;
+        _authService = authService;
     }
 
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterDto dto)
-    {
-        if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
-            return BadRequest("Bu email zaten kayıtlı.");
-
-        var user = new User
-        {
-            FullName = dto.FullName,
-            Email = dto.Email,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-            Balance = 0,
-            CreatedAt = DateTime.UtcNow
-        };
-        var customerRole = await _context.Roles
-            .FirstOrDefaultAsync(r => r.Name == "Customer");
-        if (customerRole == null)
-        {
-            customerRole = new Role { Name = "Customer" };
-            _context.Roles.Add(customerRole);
-        }
-
-        user.UserRoles.Add(new UserRole { User = user, Role = customerRole });
-
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
-
-        var token = _tokenService.CreateToken(user, new List<string> { "Customer" });
-
-        return Ok(new AuthResponseDto
-        {
-            Token = token,
-            FullName = user.FullName,
-            Email = user.Email
-        });
-    }
+        => Ok(await _authService.RegisterAsync(dto));
 
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginDto dto)
-    {
-        var user = await _context.Users
-            .Include(u => u.UserRoles)
-            .ThenInclude(ur => ur.Role)
-            .FirstOrDefaultAsync(u => u.Email == dto.Email);
+        => Ok(await _authService.LoginAsync(dto));
 
-        if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
-            return Unauthorized("Email veya şifre hatalı");
-        
-        var roles = user.UserRoles.Select(ur => ur.Role!.Name).ToList();
-        var token = _tokenService.CreateToken(user, roles);
 
-        return Ok(new AuthResponseDto
-        {
-            Token = token,
-            FullName = user.FullName,
-            Email = user.Email
-        });
-
-    }
-    
+   
     [Authorize]
     [HttpGet("me")]
     public IActionResult Me()
