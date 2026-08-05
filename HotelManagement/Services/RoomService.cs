@@ -4,6 +4,7 @@ using HotelManagement.Entities;
 using HotelManagement.Exceptions;
 using Microsoft.EntityFrameworkCore;
 
+
 namespace HotelManagement.Services;
 
 public class RoomService : IRoomService
@@ -17,11 +18,29 @@ public class RoomService : IRoomService
         _logger = logger;
     }
 
-    public async Task<List<RoomDto>> GetByHotelAsync(int hotelId)
+    public async Task<PagedResultDto<RoomDto>> GetByHotelAsync(
+        int hotelId, RoomType? type, decimal? maxPrice, int page, int pageSize)
     {
-        return await _context.Rooms
+        if (page < 1) page = 1;
+        if (pageSize < 1 || pageSize > 50) pageSize = 10;
+
+        var query = _context.Rooms
             .Include(r => r.Hotel)
             .Where(r => r.HotelId == hotelId)
+            .AsQueryable();
+
+        if (type.HasValue)
+            query = query.Where(r => r.Type == type.Value);
+
+        if (maxPrice.HasValue)
+            query = query.Where(r => r.PricePerNight <= maxPrice.Value);
+
+        var totalCount = await query.CountAsync();
+
+        var items = await query
+            .OrderBy(r => r.PricePerNight)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(r => new RoomDto
             {
                 Id = r.Id,
@@ -34,6 +53,14 @@ public class RoomService : IRoomService
                 IsAvailable = r.IsAvailable
             })
             .ToListAsync();
+
+        return new PagedResultDto<RoomDto>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
     }
 
     public async Task<RoomDto> CreateAsync(int userId, RoomCreateDto dto)

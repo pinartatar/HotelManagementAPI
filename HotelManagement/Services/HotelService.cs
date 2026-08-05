@@ -54,10 +54,27 @@ public class HotelService : IHotelService
         };
     }
 
-    public async Task<List<HotelDto>> GetAllAsync()
+    public async Task<PagedResultDto<HotelDto>> GetAllAsync(
+        string? city, string? search, int page, int pageSize)
     {
-        var hotels = await _context.Hotels
-            .Include(h => h.Owner)
+        if (page < 1) page = 1;
+        if (pageSize < 1 || pageSize > 50) pageSize = 10;
+
+    //sorgu kademeli
+        var query = _context.Hotels.Include(h => h.Owner).AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(city))
+            query = query.Where(h => h.City == city);
+
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(h => h.Name.Contains(search));
+
+        var totalCount = await query.CountAsync();
+
+        var items = await query
+            .OrderBy(h => h.Name)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(h => new HotelDto
             {
                 Id = h.Id,
@@ -67,8 +84,14 @@ public class HotelService : IHotelService
                 OwnerName = h.Owner!.FullName
             })
             .ToListAsync();
-        
-        return hotels;
+
+        return new PagedResultDto<HotelDto>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
     }
     
     public async Task UpdateAsync(int userId, bool isAdmin, int id, HotelCreateDto dto)

@@ -21,9 +21,14 @@ public class HotelsController : ControllerBase
         => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
-        => Ok(await _hotelService.GetAllAsync());
-
+    public async Task<IActionResult> GetAll(
+        [FromQuery] string? city,
+        [FromQuery] string? search,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10)
+        => Ok(await _hotelService.GetAllAsync(city, search, page, pageSize));
+    
+    
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
         => Ok(await _hotelService.GetByIdAsync(id));

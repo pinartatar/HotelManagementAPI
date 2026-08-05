@@ -3,6 +3,7 @@ using HotelManagement.DTOs;
 using HotelManagement.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using HotelManagement.Entities;
 
 namespace HotelManagement.Controllers;
 
@@ -21,9 +22,13 @@ public class RoomsController : ControllerBase
         => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
     [HttpGet("hotel/{hotelId}")]
-    public async Task<IActionResult> GetByHotel(int hotelId)
-        => Ok(await _roomService.GetByHotelAsync(hotelId));
-
+    public async Task<IActionResult> GetByHotel(
+        int hotelId,
+        [FromQuery] RoomType? type,
+        [FromQuery] decimal? maxPrice,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10)
+        => Ok(await _roomService.GetByHotelAsync(hotelId, type, maxPrice, page, pageSize));
     [Authorize(Roles = "Owner,Admin")]
     [HttpPost]
     public async Task<IActionResult> Create(RoomCreateDto dto)
