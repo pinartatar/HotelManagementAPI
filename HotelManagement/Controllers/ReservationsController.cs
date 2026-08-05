@@ -35,4 +35,28 @@ public class ReservationsController : ControllerBase
     [HttpPost("{id}/cancel")]
     public async Task<IActionResult> Cancel(int id)
         => Ok(await _reservationService.CancelAsync(GetUserId(), id));
+    
+    
+    [Authorize(Roles = "Customer,Admin")]
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(int id)
+        => Ok(await _reservationService.GetByIdAsync(GetUserId(), User.IsInRole("Admin"), id));
+
+    [Authorize(Roles = "Admin")]
+    [HttpGet]
+    public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        => Ok(await _reservationService.GetAllAsync(page, pageSize));
+
+    [Authorize(Roles = "Customer,Admin")]
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(int id, ReservationCreateDto dto)
+        => Ok(await _reservationService.UpdateAsync(GetUserId(), id, dto));
+
+    [Authorize(Roles = "Admin")]
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        await _reservationService.DeleteAsync(id);
+        return NoContent();
+    }
 }

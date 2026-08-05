@@ -37,19 +37,17 @@ public class AuthService : IAuthService
 
         var role = await _context.Roles.FirstAsync(r => r.Name == roleName);
         user.UserRoles.Add(new UserRole { User = user, Role = role });
+
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
         var token = _tokenService.CreateToken(user, new List<string> { roleName });
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
-
-     
         return new AuthResponseDto
         {
-            Token = token, FullName = user.FullName, Email = user.Email
+            Token = token,
+            FullName = user.FullName,
+            Email = user.Email
         };
-        
     }
 
     public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
