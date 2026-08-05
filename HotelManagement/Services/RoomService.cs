@@ -74,7 +74,7 @@ public class RoomService : IRoomService
         };
     }
 
-    public async Task UpdateAsync(int userId, int id, RoomUpdateDto dto)
+    public async Task UpdateAsync(int userId, bool isAdmin, int id, RoomUpdateDto dto)
     {
         var room = await _context.Rooms
             .Include(r => r.Hotel)
@@ -83,7 +83,7 @@ public class RoomService : IRoomService
         if (room == null)
             throw new NotFoundException("Oda bulunamadı.");
 
-        if (room.Hotel!.OwnerId != userId)
+        if (!isAdmin && room.Hotel!.OwnerId != userId)
             throw new ForbiddenException("Bu odanın oteli size ait değil.");
 
         room.RoomNumber = dto.RoomNumber;
@@ -94,7 +94,7 @@ public class RoomService : IRoomService
         await _context.SaveChangesAsync();
     }
 
-    public async Task DeleteAsync(int userId, int id)
+    public async Task DeleteAsync(int userId, bool isAdmin, int id)
     {
         var room = await _context.Rooms
             .Include(r => r.Hotel)
@@ -103,7 +103,7 @@ public class RoomService : IRoomService
         if (room == null)
             throw new NotFoundException("Oda bulunamadı.");
 
-        if (room.Hotel!.OwnerId != userId)
+        if (!isAdmin && room.Hotel!.OwnerId != userId)
             throw new ForbiddenException("Bu odanın oteli size ait değil.");
 
         _context.Rooms.Remove(room);

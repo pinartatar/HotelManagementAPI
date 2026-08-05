@@ -31,23 +31,25 @@ public class AuthService : IAuthService
             CreatedAt = DateTime.UtcNow
         };
 
-        var customerRole = await _context.Roles
-            .FirstOrDefaultAsync(r => r.Name == "Customer");
-        if (customerRole == null)
-        {
-            customerRole = new Role { Name = "Customer" };
-            _context.Roles.Add(customerRole);
-        }
+        var roleName = dto.Role.Trim();
+        if (roleName != "Customer" && roleName != "Owner")
+            throw new BadRequestException("Rol yalnızca 'Customer' veya 'Owner' olabilir.");
 
-        user.UserRoles.Add(new UserRole { User = user, Role = customerRole });
+        var role = await _context.Roles.FirstAsync(r => r.Name == roleName);
+        user.UserRoles.Add(new UserRole { User = user, Role = role });
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
-        var token = _tokenService.CreateToken(user, new List<string> { "Customer" });
+        var token = _tokenService.CreateToken(user, new List<string> { roleName });
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+     
         return new AuthResponseDto
         {
             Token = token, FullName = user.FullName, Email = user.Email
         };
+        
     }
 
     public async Task<AuthResponseDto> LoginAsync(LoginDto dto)

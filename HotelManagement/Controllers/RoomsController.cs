@@ -24,7 +24,7 @@ public class RoomsController : ControllerBase
     public async Task<IActionResult> GetByHotel(int hotelId)
         => Ok(await _roomService.GetByHotelAsync(hotelId));
 
-    [Authorize]
+    [Authorize(Roles = "Owner,Admin")]
     [HttpPost]
     public async Task<IActionResult> Create(RoomCreateDto dto)
     {
@@ -33,19 +33,19 @@ public class RoomsController : ControllerBase
             new { hotelId = created.HotelId }, created);
     }
 
-    [Authorize]
+    [Authorize(Roles = "Owner,Admin")]
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, RoomUpdateDto dto)
     {
-        await _roomService.UpdateAsync(GetUserId(), id, dto);
+        await _roomService.UpdateAsync(GetUserId(), User.IsInRole("Admin"), id, dto);
         return NoContent();
     }
 
-    [Authorize]
+    [Authorize(Roles = "Owner,Admin")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
-        await _roomService.DeleteAsync(GetUserId(), id);
+        await _roomService.DeleteAsync(GetUserId(), User.IsInRole("Admin"), id);
         return NoContent();
     }
 }

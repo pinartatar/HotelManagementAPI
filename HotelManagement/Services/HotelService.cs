@@ -71,13 +71,13 @@ public class HotelService : IHotelService
         return hotels;
     }
     
-    public async Task UpdateAsync(int userId, int id, HotelCreateDto dto)
-    {
+    public async Task UpdateAsync(int userId, bool isAdmin, int id, HotelCreateDto dto)
+    {                          
         var hotel = await _context.Hotels.FindAsync(id);
         if (hotel == null)
             throw new NotFoundException("Otel bulunamadı.");
 
-        if (hotel.OwnerId != userId)
+        if (!isAdmin && hotel.OwnerId != userId)    
             throw new ForbiddenException("Bu otel size ait değil.");
 
         hotel.Name = dto.Name;
@@ -87,13 +87,13 @@ public class HotelService : IHotelService
         await _context.SaveChangesAsync();
     }
 
-    public async Task DeleteAsync(int userId, int id)
-    {
+    public async Task DeleteAsync(int userId, bool isAdmin, int id)
+    {                        
         var hotel = await _context.Hotels.FindAsync(id);
         if (hotel == null)
             throw new NotFoundException("Otel bulunamadı.");
 
-        if (hotel.OwnerId != userId)
+        if (!isAdmin && hotel.OwnerId != userId)     
             throw new ForbiddenException("Bu otel size ait değil.");
 
         _context.Hotels.Remove(hotel);
