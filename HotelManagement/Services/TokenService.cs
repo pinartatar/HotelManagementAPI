@@ -12,6 +12,7 @@ public class TokenService
 {
     private readonly IConfiguration _configuration;
 
+    
     public TokenService(IConfiguration configuration)
     {
         _configuration = configuration;
@@ -27,7 +28,7 @@ public class TokenService
             new Claim(ClaimTypes.Name, user.FullName)
         };
 
-        //kullanıcının rolü için claim
+        //kullanıcının rolü 
         foreach (var role in roles)
         {
             claims.Add(new Claim(ClaimTypes.Role, role));
@@ -40,7 +41,7 @@ public class TokenService
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
         
         
-        // token oluşturma
+        // token oluştrma
         var token = new JwtSecurityToken(
             issuer: _configuration["Jwt:Issuer"],
             audience:_configuration["Jwt:Audience"],

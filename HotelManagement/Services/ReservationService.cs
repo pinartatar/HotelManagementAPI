@@ -26,7 +26,9 @@ public class ReservationService : IReservationService
             throw new BadRequestException("Çıkış tarihi giriş tarihinden sonra olmalı.");
 
         var room = await _context.Rooms
+            
             .Include(r => r.Hotel)
+            .ThenInclude(h => h!.Owner) 
             .FirstOrDefaultAsync(r => r.Id == dto.RoomId);
         if (room == null)
             throw new NotFoundException("Oda bulunamadı.");
@@ -48,6 +50,8 @@ public class ReservationService : IReservationService
                 $"Yetersiz bakiye. Gerekli: {totalPrice}, mevcut: {user.Balance}");
 
         user.Balance -= totalPrice;
+        
+        room.Hotel!.Owner!.Balance += totalPrice;   // para otel sahibine geçer
 
         var reservation = new Reservation
         {
@@ -88,6 +92,8 @@ public class ReservationService : IReservationService
             Status = reservation.Status.ToString(),
             CreatedAt = reservation.CreatedAt
         };
+        
+        
     }
 
     public async Task<List<ReservationDto>> GetMyAsync(int userId)
@@ -110,16 +116,25 @@ public class ReservationService : IReservationService
             .ToListAsync();
     }
 
+    
     public async Task<CancelResultDto> CancelAsync(int userId, int id)
     {
+        
+       
         var reservation = await _context.Reservations
+            .Include(r => r.Room)
+            .ThenInclude(room => room!.Hotel)
+            .ThenInclude(h => h!.Owner)
             .FirstOrDefaultAsync(r => r.Id == id);
+        
         if (reservation == null)
             throw new NotFoundException("Rezervasyon bulunamadı.");
+
 
         if (reservation.UserId != userId)
             throw new ForbiddenException("Bu rezervasyon size ait değil.");
 
+        
         if (reservation.Status == ReservationStatus.Cancelled)
             throw new BadRequestException("Bu rezervasyon zaten iptal edilmiş.");
 
@@ -131,13 +146,14 @@ public class ReservationService : IReservationService
         var penaltyRate = daysUntilCheckIn < 2 ? 0.20m : 0m;
         var penalty = reservation.TotalPrice * penaltyRate;
         var refund = reservation.TotalPrice - penalty;
-
         var user = await _context.Users.FindAsync(userId);
         user!.Balance += refund;
+        reservation.Room!.Hotel!.Owner!.Balance -= refund;   // sahibi iadeyi öder, ceza (200) onda kalır
 
         reservation.Status = ReservationStatus.Cancelled;
         reservation.CanceledAt = DateTime.UtcNow;
         reservation.PenaltyAmount = penalty;
+        
 
         var refundPayment = new Payment
         {
@@ -147,6 +163,8 @@ public class ReservationService : IReservationService
             Method = PaymentMethod.Card,
             Status = PaymentStatus.Refunded
         };
+        
+        
         _context.Payments.Add(refundPayment);
 
         await _context.SaveChangesAsync();
@@ -161,6 +179,8 @@ public class ReservationService : IReservationService
             Penalty = penalty,
             DaysUntilCheckIn = daysUntilCheckIn
         };
+        
+        
     }
     
     public async Task<ReservationDto> GetByIdAsync(int userId, bool isAdmin, int id)
@@ -245,7 +265,7 @@ public async Task<ReservationDto> UpdateAsync(int userId, int id, ReservationCre
     if (dto.CheckOutDate <= dto.CheckInDate)
         throw new BadRequestException("Çıkış tarihi giriş tarihinden sonra olmalı.");
 
-    //çakışma kontrolü 
+    // Çakışma kontrolü — KENDİSİ HARİÇ! (r.Id != id şartına dikkat)
     var isOccupied = await _context.Reservations.AnyAsync(r =>
         r.Id != id &&
         r.RoomId == reservation.RoomId &&
@@ -255,17 +275,17 @@ public async Task<ReservationDto> UpdateAsync(int userId, int id, ReservationCre
     if (isOccupied)
         throw new ConflictException("Oda yeni tarihlerde dolu.");
 
-    //yeni fiyat ve fark hesabı
+    // Yeni fiyat ve fark hesabı
     var nights = dto.CheckOutDate.DayNumber - dto.CheckInDate.DayNumber;
     var newPrice = nights * reservation.Room!.PricePerNight;
-    var difference = newPrice - reservation.TotalPrice; 
+    var difference = newPrice - reservation.TotalPrice; // + = ek ücret, - = iade
 
     var user = await _context.Users.FindAsync(userId);
     if (difference > 0 && user!.Balance < difference)
         throw new BadRequestException(
             $"Yetersiz bakiye. Ek ücret: {difference}, mevcut: {user.Balance}");
 
-    user!.Balance -= difference; // fark artıysa düşer eksiyse iade olur
+    user!.Balance -= difference; // fark artıysa düşer, eksiyse iade olur
 
     if (difference != 0)
     {

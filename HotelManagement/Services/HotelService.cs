@@ -123,5 +123,6 @@ public class HotelService : IHotelService
         await _context.SaveChangesAsync();
 
         _logger.LogInformation("Otel silindi: {HotelId} (sahip: {UserId})", id, userId);
+        
     }
 }

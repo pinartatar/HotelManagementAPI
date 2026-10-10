@@ -168,14 +168,15 @@ namespace HotelManagement.Migrations
 
                     b.Property<string>("RoomNumber")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<int>("Type")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("HotelId");
+                    b.HasIndex("HotelId", "RoomNumber")
+                        .IsUnique();
 
                     b.ToTable("Rooms");
                 });

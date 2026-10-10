@@ -17,9 +17,10 @@ public class ExceptionHandlingMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
+        
         try
         {
-            await _next(context);   // isteği yoluna devam ettir
+            await _next(context);   
         }
         catch (Exception ex)
         {
@@ -33,16 +34,20 @@ public class ExceptionHandlingMiddleware
                 _ => StatusCodes.Status500InternalServerError
             };
 
+            
             if (statusCode == StatusCodes.Status500InternalServerError)
                 _logger.LogError(ex, "Beklenmeyen hata: {Message}", ex.Message);
             else
                 _logger.LogWarning("İş kuralı hatası ({StatusCode}): {Message}",
                     statusCode, ex.Message);
 
+            
             context.Response.StatusCode = statusCode;
             context.Response.ContentType = "application/json";
+            
             await context.Response.WriteAsync(
                 JsonSerializer.Serialize(new { error = ex.Message }));
         }
+        
     }
 }

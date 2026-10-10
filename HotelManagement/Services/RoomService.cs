@@ -12,6 +12,7 @@ public class RoomService : IRoomService
     private readonly AppDbContext _context;
     private readonly ILogger<RoomService> _logger;
 
+    
     public RoomService(AppDbContext context, ILogger<RoomService> logger)
     {
         _context = context;
@@ -21,6 +22,7 @@ public class RoomService : IRoomService
     public async Task<PagedResultDto<RoomDto>> GetByHotelAsync(
         int hotelId, RoomType? type, decimal? maxPrice, int page, int pageSize)
     {
+        
         if (page < 1) page = 1;
         if (pageSize < 1 || pageSize > 50) pageSize = 10;
 
@@ -36,6 +38,7 @@ public class RoomService : IRoomService
             query = query.Where(r => r.PricePerNight <= maxPrice.Value);
 
         var totalCount = await query.CountAsync();
+        
 
         var items = await query
             .OrderBy(r => r.PricePerNight)
@@ -43,6 +46,7 @@ public class RoomService : IRoomService
             .Take(pageSize)
             .Select(r => new RoomDto
             {
+                
                 Id = r.Id,
                 HotelId = r.HotelId,
                 HotelName = r.Hotel!.Name,
@@ -51,7 +55,9 @@ public class RoomService : IRoomService
                 PricePerNight = r.PricePerNight,
                 Capacity = r.Capacity,
                 IsAvailable = r.IsAvailable
+                
             })
+            
             .ToListAsync();
 
         return new PagedResultDto<RoomDto>
@@ -62,18 +68,20 @@ public class RoomService : IRoomService
             PageSize = pageSize
         };
     }
+    
+    
 
     public async Task<RoomDto> CreateAsync(int userId, RoomCreateDto dto)
     {
         var hotel = await _context.Hotels.FindAsync(dto.HotelId);
         if (hotel == null)
             throw new NotFoundException("Otel bulunamadı.");
-
         if (hotel.OwnerId != userId)
             throw new ForbiddenException("Bu otel size ait değil.");
 
         var room = new Room
         {
+            
             HotelId = dto.HotelId,
             RoomNumber = dto.RoomNumber,
             Type = dto.Type,
@@ -87,6 +95,7 @@ public class RoomService : IRoomService
 
         _logger.LogInformation("Yeni oda eklendi: {RoomNumber} (otel: {HotelId})",
             room.RoomNumber, room.HotelId);
+        
 
         return new RoomDto
         {
@@ -103,6 +112,7 @@ public class RoomService : IRoomService
 
     public async Task UpdateAsync(int userId, bool isAdmin, int id, RoomUpdateDto dto)
     {
+        
         var room = await _context.Rooms
             .Include(r => r.Hotel)
             .FirstOrDefaultAsync(r => r.Id == id);
@@ -135,7 +145,7 @@ public class RoomService : IRoomService
 
         _context.Rooms.Remove(room);
         await _context.SaveChangesAsync();
-
         _logger.LogInformation("Oda silindi: {RoomId}", id);
     }
+    
 }

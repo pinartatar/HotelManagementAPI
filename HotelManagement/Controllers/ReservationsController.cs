@@ -10,6 +10,7 @@ namespace HotelManagement.Controllers;
 [Route("api/[controller]")]
 public class ReservationsController : ControllerBase
 {
+    
     private readonly IReservationService _reservationService;
 
     public ReservationsController(IReservationService reservationService)
@@ -26,10 +27,12 @@ public class ReservationsController : ControllerBase
     public async Task<IActionResult> Create(ReservationCreateDto dto)
         => Ok(await _reservationService.CreateAsync(GetUserId(), dto));
 
+    
     [Authorize(Roles = "Customer,Admin")]
     [HttpGet("my")]
     public async Task<IActionResult> GetMy()
         => Ok(await _reservationService.GetMyAsync(GetUserId()));
+    
 
     [Authorize(Roles = "Customer,Admin")]
     [HttpPost("{id}/cancel")]
@@ -59,4 +62,6 @@ public class ReservationsController : ControllerBase
         await _reservationService.DeleteAsync(id);
         return NoContent();
     }
+
+
 }

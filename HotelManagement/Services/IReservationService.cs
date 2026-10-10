@@ -11,4 +11,5 @@ public interface IReservationService
     Task<PagedResultDto<ReservationDto>> GetAllAsync(int page, int pageSize);
     Task<ReservationDto> UpdateAsync(int userId, int id, ReservationCreateDto dto);
     Task DeleteAsync(int id);
+    
 }

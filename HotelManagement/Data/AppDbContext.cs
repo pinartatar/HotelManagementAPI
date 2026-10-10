@@ -46,6 +46,12 @@ public class AppDbContext : DbContext
             .WithMany()
             .HasForeignKey(h => h.OwnerId)
             .OnDelete(DeleteBehavior.Restrict);
+        
+        
+        // Aynı otelde aynı oda numarası olamaz ÇOK ÖNEMLİ
+        modelBuilder.Entity<Room>()
+            .HasIndex(r => new { r.HotelId, r.RoomNumber })
+            .IsUnique();
     }
         
         
